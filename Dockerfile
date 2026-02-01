@@ -1,5 +1,5 @@
 # The Book of Secret Knowledge - Documentation Site
-# Multi-stage build for optimized image
+# Optimized for Railway deployment
 
 FROM nginx:alpine
 
@@ -8,7 +8,11 @@ LABEL maintainer="The Book of Secret Knowledge"
 LABEL description="A collection of inspiring lists, manuals, cheatsheets, blogs, hacks, one-liners, cli/web tools, and more."
 LABEL version="1.0"
 
-# Copy nginx configuration
+# Install envsubst (gettext) for dynamic port configuration
+RUN apk add --no-cache gettext
+
+# Copy nginx configuration template
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy the documentation files
@@ -18,24 +22,23 @@ COPY LICENSE.md /usr/share/nginx/html/
 COPY static/ /usr/share/nginx/html/static/
 COPY .github/ /usr/share/nginx/html/.github/
 
-# Create a non-root user for security
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup && \
-    chown -R appuser:appgroup /usr/share/nginx/html && \
-    chown -R appuser:appgroup /var/cache/nginx && \
-    chown -R appuser:appgroup /var/log/nginx && \
-    touch /var/run/nginx.pid && \
-    chown -R appuser:appgroup /var/run/nginx.pid
+# Create startup script for dynamic port configuration
+RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
+    echo 'set -e' >> /docker-entrypoint.sh && \
+    echo 'export PORT=${PORT:-8080}' >> /docker-entrypoint.sh && \
+    echo 'envsubst "\$PORT" < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf' >> /docker-entrypoint.sh && \
+    echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
 
-# Expose port 8080 (non-privileged)
-EXPOSE 8080
+# Set default port (Railway will override this)
+ENV PORT=8080
 
-# Health check
+# Expose the port (Railway uses PORT env var)
+EXPOSE ${PORT}
+
+# Health check using the PORT variable
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/health || exit 1
 
-# Run as non-root user
-USER appuser
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start nginx with dynamic port configuration
+CMD ["/docker-entrypoint.sh"]
