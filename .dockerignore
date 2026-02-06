@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+!LICENSE.md
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build files
+Makefile
+docker-compose.yml
+scripts/
+
+# Misc
+*.log
+*.bak
+*.tmp
