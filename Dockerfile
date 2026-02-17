@@ -18,6 +18,7 @@ COPY README.md /usr/share/nginx/html/
 COPY LICENSE.md /usr/share/nginx/html/
 COPY static/ /usr/share/nginx/html/static/
 COPY .github/ /usr/share/nginx/html/.github/
+COPY docs/ /usr/share/nginx/html/docs/
 
 # Create startup script for dynamic port configuration (using sed instead of envsubst)
 RUN printf '#!/bin/sh\nset -e\nPORT=${PORT:-8080}\nsed "s/\${PORT}/$PORT/g" /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf\nexec nginx -g "daemon off;"\n' > /docker-entrypoint.sh && \
